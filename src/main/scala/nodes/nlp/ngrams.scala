@@ -118,20 +118,22 @@ case class NGramsCounts[T: ClassTag](mode: String = "default")
   // and we need the ngram representation to have sane .equals() and .hashCode().
   override def apply(rdd: RDD[Seq[Seq[T]]]): RDD[(NGram[T], Int)] = {
     val ngramCnts = rdd.mapPartitions { lines =>
-      val counts = new JHashMap[NGram[T], Int]().asScala
+      val counts = new JHashMap[NGram[T], Int]()
       var i = 0
       var ngram: NGram[T] = null
+      var currCount: Integer = null
       while (lines.hasNext) {
         val line = lines.next()
         i = 0
         while (i < line.length) {
           ngram = new NGram[T](line(i))
-          val currCount = counts.getOrElse(ngram, 0)
-          counts.put(ngram, currCount + 1)
+          currCount = counts.get(ngram)
+          if (currCount == null) counts.put(ngram, 0)
+          else counts.put(ngram, currCount + 1)
           i += 1
         }
       }
-      counts.toIterator
+      counts.asScala.iterator
     }
 
     mode match {
@@ -162,11 +164,13 @@ case class NGramsCountsFeaturizer[T: ClassTag](orders: Seq[Int], mode: String = 
   override def apply(rdd: RDD[Seq[T]]): RDD[(NGram[T], Int)] = {
 
     val ngramCnts = rdd.mapPartitions { lines =>
-      val counts = new JHashMap[NGram[T], Int]().asScala
+      val counts = new JHashMap[NGram[T], Int]()
       val ngramBuf = new ArrayBuffer[T](orders.max)
       var ngram: NGram[T] = null
+      var currCount: Integer = null
       var j = 0
       var order = 0
+
       lines.foreach { tokens =>
         var i = 0
         while (i + minOrder <= tokens.length) {
@@ -178,21 +182,23 @@ case class NGramsCountsFeaturizer[T: ClassTag](orders: Seq[Int], mode: String = 
             j += 1
           }
           ngram = new NGram[T](ngramBuf.clone())
-          val currCount = counts.getOrElse(ngram, 0)
-          counts.put(ngram, currCount + 1)
+          currCount = counts.get(ngram)
+          if (currCount == null) counts.put(ngram, 0)
+          else counts.put(ngram, currCount + 1)
 
           order = minOrder + 1
           while (order <= maxOrder && i + order <= tokens.length) {
             ngramBuf += tokens(i + order - 1)
             ngram = new NGram[T](ngramBuf.clone())
-            val currCount = counts.getOrElse(ngram, 0)
-            counts.put(ngram, currCount + 1)
+            currCount = counts.get(ngram)
+            if (currCount == null) counts.put(ngram, 0)
+            else counts.put(ngram, currCount + 1)
             order += 1
           }
           i += 1
         }
       }
-      counts.toIterator
+      counts.asScala.iterator // JMapWrapperLike.iterator is reasonable for now
     }
 
     mode match {
