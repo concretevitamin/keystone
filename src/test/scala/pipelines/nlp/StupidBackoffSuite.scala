@@ -62,12 +62,12 @@ class StupidBackoffSuite extends FunSuite with LocalSparkContext {
       .map { case (key, value) => key.words(0) -> value }
     val lm = StupidBackoffEstimator[String](unigrams).fit(ngrams)
 
-    assert(lm.score(new NGram(Seq("is", "coming"))) === 2.0 / 2.0)
-    assert(lm.score(new NGram(Seq("is", "coming", "really"))) === 1.0 / 2.0)
+    assert(lm.score(new NGram(Seq("is", "coming"))) === 2.0f / 2.0)
+    assert(lm.score(new NGram(Seq("is", "coming", "really"))) === 1.0f / 2.0)
 
     assert(lm.score(new NGram(Seq("is", "unseen-coming"))) === 0,
       "not equal to expected: bacoffed once & curr word unseen, so should be zero")
-    assert(lm.score(new NGram(Seq("is-unseen", "coming"))) === lm.alpha * 3.0 / lm.numTokens,
+    assert(lm.score(new NGram(Seq("is-unseen", "coming"))) === lm.alpha * 3.0f / lm.numTokens,
       "not equal to expected: backoffed once, should be alpha * currWordCount / numTokens")
   }
 

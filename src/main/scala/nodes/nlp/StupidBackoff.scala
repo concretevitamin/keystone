@@ -54,10 +54,10 @@ private[nlp] object StupidBackoff {
        unigramCounts: collection.Map[T, Int],
        getNGramCount: NGram[T] => Int,
        numTokens: Int,
-       alpha: Double = 0.4)
-      (accum: Double,
+       alpha: Float = 0.4f)
+      (accum: Float,
        ngram: NGram[T],
-       ngramFreq: Int): Double = {
+       ngramFreq: Int): Float = {
 
     val ngramOrder = indexer.ngramOrder(ngram)
     if (ngramOrder == 1) {
@@ -84,12 +84,12 @@ private[nlp] object StupidBackoff {
 }
 
 class StupidBackoffModel[@specialized(Int) T: ClassTag](
-    val scoresRDD: RDD[(NGram[T], Double)],
+    val scoresRDD: RDD[(NGram[T], Float)],
     val ngramCounts: RDD[(NGram[T], Int)],
     indexer: BackoffIndexer[T, NGram[T]],
     val unigramCounts: collection.Map[T, Int],
     val numTokens: Int,
-    val alpha: Double = 0.4) extends Transformer[(NGram[T], Int), (NGram[T], Double)] {
+    val alpha: Float = 0.4f) extends Transformer[(NGram[T], Int), (NGram[T], Float)] {
 
   // RDD lookup(); more efficient model serving is left for future work (e.g. IndexedRDD).
   private[this] val ngramLookup: NGram[T] => Int = { ngram =>
@@ -103,10 +103,10 @@ class StupidBackoffModel[@specialized(Int) T: ClassTag](
   private[this] val scoreFunc = StupidBackoff.scoreLocally(
     indexer, unigramCounts, ngramLookup, numTokens, alpha) _
 
-  def score(ngram: NGram[T]): Double =
-    scoreFunc(1.0, ngram, ngramLookup(ngram))
+  def score(ngram: NGram[T]): Float =
+    scoreFunc(1.0F, ngram, ngramLookup(ngram))
 
-  def apply(ignored: RDD[(NGram[T], Int)]): RDD[(NGram[T], Double)] =
+  def apply(ignored: RDD[(NGram[T], Int)]): RDD[(NGram[T], Float)] =
     throw new UnsupportedOperationException(
       "Doesn't make sense to chain this node; use method score(ngram) to query the model.")
 
@@ -114,8 +114,8 @@ class StupidBackoffModel[@specialized(Int) T: ClassTag](
 
 case class StupidBackoffEstimator[@specialized(Int) T: ClassTag](
     unigramCounts: collection.Map[T, Int],
-    alpha: Double = 0.4)
-  extends Estimator[RDD[(NGram[T], Int)], RDD[(NGram[T], Double)]] {
+    alpha: Float = 0.4f)
+  extends Estimator[RDD[(NGram[T], Int)], RDD[(NGram[T], Float)]] {
 
   private[this] val indexer = new NGramIndexerImpl[T]
   private[this] lazy val numTokens = unigramCounts.values.sum
@@ -135,7 +135,7 @@ case class StupidBackoffEstimator[@specialized(Int) T: ClassTag](
           indexer, unigramCounts, getNGramCount, numTokens, alpha) _
 
         ngramCountsMap.iterator.map { case (ngram, ngramFreq) =>
-          val score = scoreFunc(1.0, ngram, ngramFreq)
+          val score = scoreFunc(1.0F, ngram, ngramFreq)
           require(score >= 0.0 && score <= 1.0,
             f"""score = $score%.4f not in [0,1], ngram = $ngram
                |unigramCounts: ${unigramCounts.toSeq.mkString(",")}

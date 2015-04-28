@@ -69,7 +69,7 @@ case class NGramsFeaturizer[@specialized(Int) T: ClassTag](orders: Seq[Int])
  * be used as keys in RDDs or hash tables.
  */
 class NGram[@specialized(Int) T: ClassTag](final val words: Seq[T]) extends Serializable {
-  private[this] final val PRIME = 31
+  @inline private[this] final val PRIME = 31
 
   override def hashCode: Int = {
     var hc = PRIME
