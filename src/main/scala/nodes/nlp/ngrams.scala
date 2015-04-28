@@ -71,7 +71,7 @@ case class NGramsFeaturizer[@specialized(Int) T: ClassTag](orders: Seq[Int])
 class NGram[@specialized(Int) T: ClassTag](final val words: Seq[T]) extends Serializable {
   @inline private[this] final val PRIME = 31
 
-  override def hashCode: Int = {
+  override lazy val hashCode: Int = {
     var hc = PRIME
     var i = 0
     while (i < words.length) {
