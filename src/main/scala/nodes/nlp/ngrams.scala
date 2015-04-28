@@ -111,7 +111,7 @@ class NGram[@specialized(Int) T: ClassTag](final val words: Seq[T]) extends Seri
  *
  * @param mode "default": aggregated and sorted; "noAdd": just count within partitions.
  */
-case class NGramsCounts[T: ClassTag](mode: String = "default")
+case class NGramsCounts[@specialized(Int) T: ClassTag](mode: String = "default")
   extends Transformer[Seq[Seq[T]], (NGram[T], Int)] {
 
   // Output uses NGram as key type, since aggregation of counts uses a hash map,
@@ -146,8 +146,9 @@ case class NGramsCounts[T: ClassTag](mode: String = "default")
 
 }
 
-case class NGramsCountsFeaturizer[T: ClassTag](orders: Seq[Int], mode: String = "default")
-  extends Transformer[Seq[T], (NGram[T], Int)] {
+case class NGramsCountsFeaturizer[@specialized(Int) T: ClassTag](
+    orders: Seq[Int],
+    mode: String = "default") extends Transformer[Seq[T], (NGram[T], Int)] {
 
   private[this] final val minOrder = orders.min
   private[this] final val maxOrder = orders.max
@@ -162,7 +163,6 @@ case class NGramsCountsFeaturizer[T: ClassTag](orders: Seq[Int], mode: String = 
   // Output uses NGram as key type, since aggregation of counts uses a hash map,
   // and we need the ngram representation to have sane .equals() and .hashCode().
   override def apply(rdd: RDD[Seq[T]]): RDD[(NGram[T], Int)] = {
-
     val ngramCnts = rdd.mapPartitions { lines =>
       val counts = new JHashMap[NGram[T], Int]()
       val ngramBuf = new ArrayBuffer[T](orders.max)
