@@ -25,8 +25,7 @@ object StupidBackoffLMPipeline {
 
     /** NGram (n >= 2) generation step */
     val makeNGrams = frequencyEncode then
-      NGramsFeaturizer(2 to 5) then
-      NGramsCounts("noAdd")
+      NGramsCountsFeaturizer(2 to 5, "noAdd")
 
     val ngramCounts = makeNGrams(text)
 

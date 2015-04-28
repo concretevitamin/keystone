@@ -143,3 +143,64 @@ case class NGramsCounts[T: ClassTag](mode: String = "default")
   }
 
 }
+
+case class NGramsCountsFeaturizer[T: ClassTag](orders: Seq[Int], mode: String = "default")
+  extends Transformer[Seq[T], (NGram[T], Int)] {
+
+  private[this] final val minOrder = orders.min
+  private[this] final val maxOrder = orders.max
+
+  require(minOrder >= 1, s"minimum order is not >= 1, found $minOrder")
+  orders.sliding(2).foreach {
+    case xs if xs.length > 1 => require(xs(0) == xs(1) - 1,
+      s"orders are not consecutive; contains ${xs(0)} and ${xs(1)}")
+    case _ =>
+  }
+
+  // Output uses NGram as key type, since aggregation of counts uses a hash map,
+  // and we need the ngram representation to have sane .equals() and .hashCode().
+  override def apply(rdd: RDD[Seq[T]]): RDD[(NGram[T], Int)] = {
+
+    val ngramCnts = rdd.mapPartitions { lines =>
+      val counts = new JHashMap[NGram[T], Int]().asScala
+      val ngramBuf = new ArrayBuffer[T](orders.max)
+      var ngram: NGram[T] = null
+      var j = 0
+      var order = 0
+      lines.foreach { tokens =>
+        var i = 0
+        while (i + minOrder <= tokens.length) {
+          ngramBuf.clear()
+
+          j = i
+          while (j < i + minOrder) {
+            ngramBuf += tokens(j)
+            j += 1
+          }
+          ngram = new NGram[T](ngramBuf.clone())
+          val currCount = counts.getOrElse(ngram, 0)
+          counts.put(ngram, currCount + 1)
+
+          order = minOrder + 1
+          while (order <= maxOrder && i + order <= tokens.length) {
+            ngramBuf += tokens(i + order - 1)
+            ngram = new NGram[T](ngramBuf.clone())
+            val currCount = counts.getOrElse(ngram, 0)
+            counts.put(ngram, currCount + 1)
+            order += 1
+          }
+          i += 1
+        }
+      }
+      counts.toIterator
+    }
+
+    mode match {
+      case "default" => ngramCnts.reduceByKey(_ + _)
+        .sortBy(_._2, ascending = false)
+      case "noAdd" => ngramCnts
+      case _ => throw new IllegalArgumentException(s"`mode` must be `default` or `noAdd`")
+    }
+  }
+
+}

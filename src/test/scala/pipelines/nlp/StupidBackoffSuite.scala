@@ -22,7 +22,7 @@ class StupidBackoffSuite extends FunSuite with LocalSparkContext {
 
   def requireNGramColocation[T, V](
       ngrams: RDD[(NGram[T], V)],
-      indexer: BackoffIndexer[T, NGram[T]]) = {
+      indexer: NGramIndexerImpl[T]) = {
 
     ngrams.mapPartitions { part =>
       val map = new java.util.HashMap[NGram[T], V]().asScala

@@ -119,16 +119,16 @@ class NGramIndexerImpl[@specialized(Int) T: ClassTag]
   final val maxNgramOrder = 5 // TODO: makes sense to set it to infty?
 
   // TODO: Call .toArray() to do a copy?
-  def pack(ngram: Seq[T]): NGram[T] = new NGram(ngram)
+  def pack(ngram: Seq[T]): NGram[T] = new NGram[T](ngram)
 
   def unpack(ngram: NGram[T], pos: Int): T = ngram.words(pos)
 
   // TODO: does the interface allow modifying same NGram object?
   def removeFarthestWord(ngram: NGram[T]): NGram[T] =
-    new NGram(ngram.words.drop(1))
+    new NGram[T](ngram.words.drop(1))
 
   def removeCurrentWord(ngram: NGram[T]): NGram[T] =
-    new NGram(ngram.words.dropRight(1))
+    new NGram[T](ngram.words.dropRight(1))
 
   def ngramOrder(ngram: NGram[T]): Int = ngram.words.length
 
